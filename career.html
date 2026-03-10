@@ -1,0 +1,3330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>career analyzer, GitHub & LinkedIn Analyzer</title>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           CSS VARIABLES & RESET
+           ============================================ */
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-glass: rgba(20, 20, 35, 0.6);
+            --neon-blue: #00f3ff;
+            --neon-green: #00ff88;
+            --neon-purple: #b829dd;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --shadow-neon: 0 0 20px rgba(0, 243, 255, 0.3);
+            --gradient-primary: linear-gradient(135deg, var(--neon-blue), var(--neon-green));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(0, 243, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(184, 41, 221, 0.1) 0%, transparent 50%);
+            z-index: -1;
+            animation: bgPulse 10s ease-in-out infinite;
+        }
+
+        @keyframes bgPulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* ============================================
+           GLASSMORPHISM COMPONENTS
+           ============================================ */
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-neon), 0 8px 32px rgba(0, 0, 0, 0.4);
+            border-color: rgba(0, 243, 255, 0.3);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-size: 14px;
+            width: 100%;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .glass-input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        .glass-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .glass-btn {
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 28px;
+            color: #000;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .glass-btn:hover::before {
+            left: 100%;
+        }
+
+        .glass-btn:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-neon);
+        }
+
+        .glass-btn.secondary {
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .glass-btn.secondary:hover {
+            background: var(--neon-blue);
+            color: #000;
+        }
+
+        .glass-btn.danger {
+            background: linear-gradient(135deg, #ff4757, #ff6348);
+            color: white;
+        }
+
+        /* ============================================
+           LAYOUT STRUCTURE
+           ============================================ */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-glass);
+            padding: 30px 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            font-size: 32px;
+            -webkit-text-fill-color: var(--neon-blue);
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 10px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--neon-blue);
+            border-left: 3px solid var(--neon-blue);
+        }
+
+        .nav-link i {
+            font-size: 18px;
+            width: 24px;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid var(--border-glass);
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-title i {
+            color: var(--neon-blue);
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .mode-toggle {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 30px;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .mode-toggle:hover {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        /* ============================================
+           PAGE SECTIONS (SPA Routing)
+           ============================================ */
+        .page-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================
+           AUTH PAGES (Login/Register)
+           ============================================ */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 480px;
+            padding: 50px;
+            text-align: center;
+        }
+
+        .auth-logo {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .auth-title {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .glass-input.with-icon {
+            padding-left: 48px;
+        }
+
+        .error-message {
+            color: #ff4757;
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .auth-footer {
+            margin-top: 30px;
+            color: var(--text-secondary);
+        }
+
+        .auth-footer a {
+            color: var(--neon-blue);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .role-card {
+            padding: 20px;
+            border: 2px solid var(--border-glass);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .role-card:hover,
+        .role-card.selected {
+            border-color: var(--neon-blue);
+            background: rgba(0, 243, 255, 0.1);
+        }
+
+        .role-card i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: var(--neon-blue);
+        }
+
+        .role-card.selected i {
+            color: var(--neon-green);
+        }
+
+        /* ============================================
+           DASHBOARD COMPONENTS
+           ============================================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0, 243, 255, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover::after {
+            opacity: 1;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--neon-blue);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .stat-change {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .stat-change.positive {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--neon-green);
+        }
+
+        /* Analysis Form */
+        .analysis-form {
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .file-upload {
+            position: relative;
+            border: 2px dashed var(--border-glass);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover,
+        .file-upload.dragover {
+            border-color: var(--neon-blue);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .file-upload input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .file-name {
+            margin-top: 15px;
+            color: var(--neon-green);
+            font-weight: 600;
+        }
+
+        /* Results Section */
+        .results-container {
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .score-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .score-circle {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .circular-chart {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .circular-chart svg {
+            transform: rotate(-90deg);
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 3;
+        }
+
+        .circle-progress {
+            fill: none;
+            stroke: url(#gradient);
+            stroke-width: 3;
+            stroke-linecap: round;
+            transition: stroke-dasharray 1s ease;
+        }
+
+        .score-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .analysis-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .detail-card {
+            padding: 30px;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .detail-header i {
+            font-size: 24px;
+            color: var(--neon-blue);
+        }
+
+        .detail-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .skill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(0, 255, 136, 0.15);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 20px;
+            font-size: 13px;
+            margin: 5px;
+            color: var(--neon-green);
+        }
+
+        .skill-tag.missing {
+            background: rgba(255, 71, 87, 0.15);
+            border-color: rgba(255, 71, 87, 0.3);
+            color: #ff4757;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            transition: width 1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .suggestion-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--neon-blue);
+        }
+
+        .suggestion-item i {
+            color: var(--neon-blue);
+            font-size: 20px;
+        }
+
+        /* History Section */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            transform: translateX(10px);
+            border-color: var(--neon-blue);
+        }
+
+        .history-info h4 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .history-info span {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .history-score {
+            text-align: right;
+        }
+
+        .history-score .score {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--neon-green);
+        }
+
+        /* ============================================
+           HR DASHBOARD SPECIFIC
+           ============================================ */
+        .candidates-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .candidates-table th,
+        .candidates-table td {
+            padding: 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .candidates-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .candidates-table tr:hover td {
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .candidate-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .candidate-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.excellent {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--neon-green);
+        }
+
+        .status-badge.good {
+            background: rgba(0, 243, 255, 0.2);
+            color: var(--neon-blue);
+        }
+
+        .status-badge.average {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: var(--text-primary);
+            min-width: 150px;
+        }
+
+        .mock-test-builder {
+            padding: 30px;
+        }
+
+        .question-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .option-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+        }
+
+        .chart-container {
+            padding: 25px;
+            height: 400px;
+            position: relative;
+        }
+
+        /* ============================================
+           CHATBOT
+           ============================================ */
+        .chatbot-widget {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .chatbot-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            border: none;
+            color: #000;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: var(--shadow-neon);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chatbot-toggle:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        .chatbot-window {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 380px;
+            height: 500px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .chatbot-window.open {
+            display: flex;
+            animation: chatSlideUp 0.3s ease;
+        }
+
+        @keyframes chatSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: rgba(0, 243, 255, 0.1);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-header h4::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--gradient-primary);
+            color: #000;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-glass);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid var(--border-glass);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 25px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: var(--neon-blue);
+        }
+
+        .chat-send {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--neon-blue);
+            border: none;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chat-send:hover {
+            transform: scale(1.1);
+            background: var(--neon-green);
+        }
+
+        /* ============================================
+           LOADING & SCANNING ANIMATIONS
+           ============================================ */
+        .scanner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scanner-overlay.active {
+            display: flex;
+        }
+
+        .scanner-box {
+            width: 300px;
+            height: 300px;
+            position: relative;
+            border: 2px solid var(--neon-blue);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .scanner-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+
+        .scanner-text {
+            margin-top: 30px;
+            font-size: 18px;
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 243, 255, 0.3);
+            border-top-color: var(--neon-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ============================================
+           MODAL
+           ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .modal-close:hover {
+            color: var(--neon-blue);
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .stats-grid,
+            .form-grid,
+            .analysis-details,
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chatbot-window {
+                width: calc(100vw - 40px);
+                right: -20px;
+            }
+
+            .role-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* ============================================
+           UTILITY CLASSES
+           ============================================ */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-gradient {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-between {
+            justify-content: space-between;
+        }
+
+        .gap-15 {
+            gap: 15px;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 16px 24px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            border-left: 4px solid var(--neon-blue);
+            animation: toastSlide 0.3s ease;
+            max-width: 400px;
+        }
+
+        @keyframes toastSlide {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left-color: var(--neon-green);
+        }
+
+        .toast.error {
+            border-left-color: #ff4757;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SVG Gradients Definition -->
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#00f3ff;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#00ff88;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <!-- Scanner Overlay -->
+    <div class="scanner-overlay" id="scannerOverlay">
+        <div class="scanner-box">
+            <div class="scanner-line"></div>
+            <div
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; color: var(--neon-blue);">
+                <i class="fas fa-robot"></i>
+            </div>
+        </div>
+        <div class="scanner-text" id="scannerText">Initializing AI Analysis...</div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Auth Container (Login/Register) -->
+    <div class="auth-container" id="authContainer">
+        <!-- Login Form -->
+        <div class="glass-card auth-card" id="loginForm">
+            <div class="auth-logo">
+                <i class="fas fa-brain text-gradient"></i>
+            </div>
+            <h1 class="auth-title">Welcome to <span class="text-gradient">career analyser</span></h1>
+            <p class="auth-subtitle">Analyze your career readiness with AI</p>
+
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" class="glass-input with-icon" id="loginEmail" placeholder="Enter your email"
+                            required>
+                    </div>
+                    <div class="error-message" id="loginEmailError">Please enter a valid email</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" class="glass-input with-icon" id="loginPassword"
+                            placeholder="Enter your password" required>
+                    </div>
+                    <div class="error-message" id="loginPasswordError">Password must be at least 6 characters</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <div class="role-selector">
+                        <div class="role-card selected" onclick="selectRole('candidate', this)" data-role="candidate">
+                            <i class="fas fa-user"></i>
+                            <div>Candidate</div>
+                        </div>
+                        <div class="role-card" onclick="selectRole('hr', this)" data-role="hr">
+                            <i class="fas fa-user-tie"></i>
+                            <div>HR/Recruiter</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="glass-btn" style="width: 100%; margin-bottom: 15px;">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+
+                <button type="button" class="glass-btn secondary" style="width: 100%;" onclick="showRegister()">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Forgot password? <a>Reset here</a></p>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div class="glass-card auth-card hidden" id="registerForm">
+            <div class="auth-logo">
+                <i class="fas fa-brain text-gradient"></i>
+            </div>
+            <h1 class="auth-title">Create Account</h1>
+            <p class="auth-subtitle">Join career analyser</p>
+
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" class="glass-input with-icon" id="regName" placeholder="Enter your full name"
+                            required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" class="glass-input with-icon" id="regEmail" placeholder="Enter your email"
+                            required>
+                    </div>
+                    <div class="error-message" id="regEmailError">Invalid email format</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" class="glass-input with-icon" id="regPassword"
+                            placeholder="Create password (min 8 chars)" required>
+                    </div>
+                    <div class="error-message" id="regPasswordError">Password must be at least 8 characters with 1
+                        number</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" class="glass-input with-icon" id="regConfirmPassword"
+                            placeholder="Confirm password" required>
+                    </div>
+                    <div class="error-message" id="regConfirmError">Passwords do not match</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Account Type</label>
+                    <div class="role-selector">
+                        <div class="role-card selected" onclick="selectRegRole('candidate', this)"
+                            data-role="candidate">
+                            <i class="fas fa-user"></i>
+                            <div>Job Seeker</div>
+                        </div>
+                        <div class="role-card" onclick="selectRegRole('hr', this)" data-role="hr">
+                            <i class="fas fa-user-tie"></i>
+                            <div>HR Professional</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="glass-btn" style="width: 100%; margin-bottom: 15px;">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+
+                <button type="button" class="glass-btn secondary" style="width: 100%;" onclick="showLogin()">
+                    <i class="fas fa-arrow-left"></i> Back to Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div class="app-container hidden" id="mainApp">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <span>career analyser</span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 12px; margin-top: 10px;">Career Intelligence Platform
+                </p>
+            </div>
+
+            <nav>
+                <ul class="nav-menu" id="candidateNav">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="navigateTo('dashboard')">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="navigateTo('analysis')">
+                            <i class="fas fa-microscope"></i>
+                            <span>New Analysis</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="navigateTo('history')">
+                            <i class="fas fa-history"></i>
+                            <span>Analysis History</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="navigateTo('profile')">
+                            <i class="fas fa-user-circle"></i>
+                            <span>My Profile</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="nav-menu hidden" id="hrNav">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="navigateTo('hr-dashboard')">
+                            <i class="fas fa-chart-line"></i>
+                            <span>HR Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="navigateTo('candidates')">
+                            <i class="fas fa-users"></i>
+                            <span>Candidates</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="navigateTo('mock-tests')">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Mock Tests</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="navigateTo('analytics')">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Analytics</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-glass);">
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </div>
+            </nav>
+
+            <div style="position: absolute; bottom: 30px; left: 20px; right: 20px;">
+                <div class="glass-card" style="padding: 15px; text-align: center;">
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Current Plan</div>
+                    <div style="font-weight: 700; color: var(--neon-blue);">Pro Tier</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2 class="page-title" id="pageTitle">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </h2>
+                <div class="user-actions">
+                    <button class="mode-toggle" onclick="toggleChatbot()">
+                        <i class="fas fa-robot"></i> AI Assistant
+                    </button>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="candidate-avatar" id="userAvatar"
+                            style="width: 40px; height: 40px; font-size: 16px;">JD</div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;" id="userName">John Doe</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);" id="userRole">Candidate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CANDIDATE: Dashboard -->
+            <section class="page-section active" id="dashboard">
+                <div class="stats-grid">
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="totalAnalyses">0</div>
+                                <div class="stat-label">Total Analyses</div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                        </div>
+                        <span class="stat-change positive">+12% this month</span>
+                    </div>
+
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="avgScore">0%</div>
+                                <div class="stat-label">Average Score</div>
+                            </div>
+                            <div class="stat-icon"
+                                style="background: rgba(0, 255, 136, 0.1); color: var(--neon-green);">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                        </div>
+                        <span class="stat-change positive">+5% improvement</span>
+                    </div>
+
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="skillsCount">0</div>
+                                <div class="stat-label">Skills Detected</div>
+                            </div>
+                            <div class="stat-icon"
+                                style="background: rgba(184, 41, 221, 0.1); color: var(--neon-purple);">
+                                <i class="fas fa-code"></i>
+                            </div>
+                        </div>
+                        <span class="stat-change positive">Growing steadily</span>
+                    </div>
+
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="readinessStatus">--</div>
+                                <div class="stat-label">Readiness</div>
+                            </div>
+                            <div class="stat-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                        </div>
+                        <span class="stat-change positive">Analysis needed</span>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 40px; text-align: center;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">
+                        <i class="fas fa-rocket text-gradient"></i>
+                    </div>
+                    <h2 style="font-size: 28px; margin-bottom: 15px;">Ready to analyze your career potential?</h2>
+                    <p
+                        style="color: var(--text-secondary); margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                        Upload your resume, connect your GitHub and LinkedIn profiles, and let our AI generate a
+                        comprehensive career readiness report.
+                    </p>
+                    <button class="glass-btn" onclick="navigateTo('analysis')">
+                        <i class="fas fa-play"></i> Start New Analysis
+                    </button>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-clock-rotate-left" style="color: var(--neon-blue);"></i>
+                        Recent Activity
+                    </h3>
+                    <div class="history-list" id="recentActivity">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- CANDIDATE: Analysis -->
+            <section class="page-section" id="analysis">
+                <div class="glass-card analysis-form">
+                    <h2 style="margin-bottom: 30px; display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-microscope" style="color: var(--neon-blue);"></i>
+                        Profile Analysis
+                    </h2>
+
+                    <form onsubmit="startAnalysis(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Resume / CV</label>
+                                <div class="file-upload" id="resumeUpload"
+                                    onclick="document.getElementById('resumeFile').click()">
+                                    <input type="file" id="resumeFile" accept=".pdf,.doc,.docx"
+                                        onchange="handleFileSelect(this, 'resume')">
+                                    <div class="upload-icon">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </div>
+                                    <div class="upload-text">Drop your resume here or click to browse</div>
+                                    <div class="upload-hint">Supports PDF, DOC, DOCX (Max 10MB)</div>
+                                    <div class="file-name" id="resumeFileName"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">GitHub Profile URL</label>
+                                <div class="input-wrapper">
+                                    <i class="fab fa-github input-icon"></i>
+                                    <input type="url" class="glass-input with-icon" id="githubUrl"
+                                        placeholder="https://github.com/username">
+                                </div>
+                                <div class="error-message" id="githubError">Please enter a valid GitHub URL</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">LinkedIn Profile URL</label>
+                                <div class="input-wrapper">
+                                    <i class="fab fa-linkedin input-icon"></i>
+                                    <input type="url" class="glass-input with-icon" id="linkedinUrl"
+                                        placeholder="https://linkedin.com/in/username">
+                                </div>
+                                <div class="error-message" id="linkedinError">Please enter a valid LinkedIn URL</div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 15px; justify-content: center;">
+                            <button type="submit" class="glass-btn">
+                                <i class="fas fa-brain"></i> Start AI Analysis
+                            </button>
+                            <button type="button" class="glass-btn secondary" onclick="resetForm()">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Analysis Results -->
+                <div class="results-container" id="resultsContainer">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <h2 style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-chart-pie" style="color: var(--neon-green);"></i>
+                            Analysis Results
+                        </h2>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="glass-btn secondary" onclick="reanalyze()">
+                                <i class="fas fa-redo"></i> Re-analyze
+                            </button>
+                            <button class="glass-btn" onclick="exportPDF()">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="score-overview">
+                        <div class="glass-card score-circle">
+                            <div class="circular-chart">
+                                <svg viewBox="0 0 36 36">
+                                    <path class="circle-bg"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                    <path class="circle-progress" id="overallScoreCircle" stroke-dasharray="0, 100"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                </svg>
+                                <div class="score-text" id="overallScore">0%</div>
+                            </div>
+                            <div class="score-label">Overall Readiness</div>
+                        </div>
+
+                        <div class="glass-card score-circle">
+                            <div class="circular-chart">
+                                <svg viewBox="0 0 36 36">
+                                    <path class="circle-bg"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                    <path class="circle-progress" id="resumeScoreCircle" stroke-dasharray="0, 100"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                </svg>
+                                <div class="score-text" id="resumeScore">0%</div>
+                            </div>
+                            <div class="score-label">Resume Score</div>
+                        </div>
+
+                        <div class="glass-card score-circle">
+                            <div class="circular-chart">
+                                <svg viewBox="0 0 36 36">
+                                    <path class="circle-bg"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                    <path class="circle-progress" id="githubScoreCircle" stroke-dasharray="0, 100"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                </svg>
+                                <div class="score-text" id="githubScore">0%</div>
+                            </div>
+                            <div class="score-label">GitHub Activity</div>
+                        </div>
+
+                        <div class="glass-card score-circle">
+                            <div class="circular-chart">
+                                <svg viewBox="0 0 36 36">
+                                    <path class="circle-bg"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                    <path class="circle-progress" id="linkedinScoreCircle" stroke-dasharray="0, 100"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831">
+                                    </path>
+                                </svg>
+                                <div class="score-text" id="linkedinScore">0%</div>
+                            </div>
+                            <div class="score-label">LinkedIn Presence</div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-details" id="analysisResults">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- CANDIDATE: History -->
+            <section class="page-section" id="history">
+                <h2 style="margin-bottom: 25px; display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-history" style="color: var(--neon-blue);"></i>
+                    Analysis History
+                </h2>
+                <div class="history-list" id="fullHistory">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+            <!-- CANDIDATE: Profile -->
+            <section class="page-section" id="profile">
+                <div class="glass-card" style="padding: 40px; max-width: 800px; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <div class="candidate-avatar"
+                            style="width: 100px; height: 100px; font-size: 36px; margin: 0 auto 20px;">JD</div>
+                        <h2 id="profileName">John Doe</h2>
+                        <p style="color: var(--text-secondary);" id="profileEmail">john@example.com</p>
+                    </div>
+
+                    <form onsubmit="updateProfile(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="glass-input" id="editName" value="John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="glass-input" id="editEmail" value="john@example.com" readonly
+                                    style="opacity: 0.6;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="glass-input" id="editPhone" placeholder="+1 (555) 000-0000">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Location</label>
+                                <input type="text" class="glass-input" id="editLocation" placeholder="City, Country">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label class="form-label">Bio</label>
+                            <textarea class="glass-input" id="editBio" rows="4"
+                                placeholder="Tell us about yourself..."></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                            <button type="submit" class="glass-btn">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <button type="button" class="glass-btn secondary" onclick="changePassword()">
+                                <i class="fas fa-key"></i> Change Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- HR: Dashboard -->
+            <section class="page-section" id="hr-dashboard">
+                <div class="stats-grid">
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="hrTotalCandidates">0</div>
+                                <div class="stat-label">Total Candidates</div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="hrAvgScore">0%</div>
+                                <div class="stat-label">Avg. Readiness</div>
+                            </div>
+                            <div class="stat-icon"
+                                style="background: rgba(0, 255, 136, 0.1); color: var(--neon-green);">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="hrTestsConducted">0</div>
+                                <div class="stat-label">Tests Conducted</div>
+                            </div>
+                            <div class="stat-icon"
+                                style="background: rgba(184, 41, 221, 0.1); color: var(--neon-purple);">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="hrHiringRate">0%</div>
+                                <div class="stat-label">Hiring Rate</div>
+                            </div>
+                            <div class="stat-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="glass-card chart-container">
+                        <h3 style="margin-bottom: 20px;">Candidate Readiness Distribution</h3>
+                        <canvas id="readinessChart"></canvas>
+                    </div>
+                    <div class="glass-card chart-container">
+                        <h3 style="margin-bottom: 20px;">Top Skills in Demand</h3>
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- HR: Candidates -->
+            <section class="page-section" id="candidates">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-users" style="color: var(--neon-blue);"></i>
+                        Candidate Management
+                    </h2>
+                    <button class="glass-btn" onclick="refreshCandidates()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="filter-bar">
+                    <select class="filter-select" id="filterRole" onchange="filterCandidates()">
+                        <option value="">All Roles</option>
+                        <option value="frontend">Frontend Developer</option>
+                        <option value="backend">Backend Developer</option>
+                        <option value="fullstack">Full Stack Developer</option>
+                        <option value="devops">DevOps Engineer</option>
+                    </select>
+                    <select class="filter-select" id="filterScore" onchange="filterCandidates()">
+                        <option value="">All Scores</option>
+                        <option value="90-100">Excellent (90-100%)</option>
+                        <option value="70-89">Good (70-89%)</option>
+                        <option value="50-69">Average (50-69%)</option>
+                        <option value="0-49">Below Average (&lt;50%)</option>
+                    </select>
+                    <select class="filter-select" id="filterDate" onchange="filterCandidates()">
+                        <option value="">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+
+                <div class="glass-card" style="overflow: hidden;">
+                    <table class="candidates-table">
+                        <thead>
+                            <tr>
+                                <th>Candidate</th>
+                                <th>Role</th>
+                                <th>Resume Score</th>
+                                <th>GitHub Score</th>
+                                <th>LinkedIn Score</th>
+                                <th>Overall</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidatesTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- HR: Mock Tests -->
+            <section class="page-section" id="mock-tests">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-clipboard-list" style="color: var(--neon-blue);"></i>
+                        Mock Test System
+                    </h2>
+                    <button class="glass-btn" onclick="openTestBuilder()">
+                        <i class="fas fa-plus"></i> Create New Test
+                    </button>
+                </div>
+
+                <div class="glass-card mock-test-builder" id="testBuilder" style="display: none;">
+                    <h3 style="margin-bottom: 25px;">Create Mock Test</h3>
+                    <div class="form-group">
+                        <label class="form-label">Test Title</label>
+                        <input type="text" class="glass-input" id="testTitle"
+                            placeholder="e.g., JavaScript Fundamentals Assessment">
+                    </div>
+
+                    <div id="questionsContainer">
+                        <!-- Questions added dynamically -->
+                    </div>
+
+                    <button type="button" class="glass-btn secondary" onclick="addQuestion()" style="margin: 20px 0;">
+                        <i class="fas fa-plus"></i> Add Question
+                    </button>
+
+                    <div style="display: flex; gap: 15px;">
+                        <button type="button" class="glass-btn" onclick="saveTest()">
+                            <i class="fas fa-save"></i> Save Test
+                        </button>
+                        <button type="button" class="glass-btn danger" onclick="closeTestBuilder()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="analysis-details" id="testsList">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+            <!-- HR: Analytics -->
+            <section class="page-section" id="analytics">
+                <div class="analytics-grid">
+                    <div class="glass-card chart-container">
+                        <h3 style="margin-bottom: 20px;">Hiring Funnel</h3>
+                        <canvas id="funnelChart"></canvas>
+                    </div>
+                    <div class="glass-card chart-container">
+                        <h3 style="margin-bottom: 20px;">Time to Hire Trends</h3>
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="margin-top: 25px; padding: 30px;">
+                    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-lightbulb" style="color: var(--neon-green);"></i>
+                        AI Hiring Recommendations
+                    </h3>
+                    <div id="recommendationsList">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Chatbot Widget -->
+    <div class="chatbot-widget">
+        <div class="chatbot-window" id="chatbotWindow">
+            <div class="chat-header">
+                <h4><i class="fas fa-robot"></i> carrer AI Assistant</h4>
+                <button style="background: none; border: none; color: var(--text-primary); cursor: pointer;"
+                    onclick="toggleChatbot()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    Hello! I'm your AI career assistant. How can I help you today? You can ask me about:
+                    <br>• Resume optimization
+                    <br>• Skill recommendations
+                    <br>• Interview preparation
+                    <br>• Career roadmap
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type your question..."
+                    onkeypress="handleChatKey(event)">
+                <button class="chat-send" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+        <button class="chatbot-toggle" onclick="toggleChatbot()">
+            <i class="fas fa-comment-dots"></i>
+        </button>
+    </div>
+
+    <!-- Candidate Detail Modal -->
+    <div class="modal-overlay" id="candidateModal">
+        <div class="glass-card modal-content">
+            <button class="modal-close" onclick="closeCandidateModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="candidateModalContent">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ============================================
+           GLOBAL STATE & CONFIGURATION
+           ============================================ */
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        const AppState = {
+            currentUser: null,
+            currentRole: 'candidate',
+            currentPage: 'dashboard',
+            analysisHistory: [],
+            candidates: [],
+            mockTests: [],
+            charts: {},
+            currentTestData: null,
+        };
+
+        // ── API helpers ──────────────────────────────────────────
+        function getToken() { return localStorage.getItem('career_access_token'); }
+        function setTokens(access, refresh) {
+            localStorage.setItem('career_access_token', access);
+            localStorage.setItem('career_refresh_token', refresh);
+        }
+        function clearTokens() {
+            localStorage.removeItem('career_access_token');
+            localStorage.removeItem('career_refresh_token');
+            localStorage.removeItem('career_user');
+        }
+        async function apiCall(endpoint, method = 'GET', body = null, isFormData = false) {
+            const headers = {};
+            const token = getToken();
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            if (!isFormData) headers['Content-Type'] = 'application/json';
+            const options = { method, headers };
+            if (body) options.body = isFormData ? body : JSON.stringify(body);
+            try {
+                const resp = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await resp.json();
+                return { ok: resp.ok, status: resp.status, data };
+            } catch (err) {
+                console.error('API error:', err);
+                return { ok: false, status: 0, data: { message: 'Cannot connect to server. Is Django running at port 8000?' } };
+            }
+        }
+
+        /* ============================================
+           INIT & SESSION RESTORE
+           ============================================ */
+        function initApp() {
+            const savedUser = localStorage.getItem('career_user');
+            const token = getToken();
+            if (savedUser && token) {
+                AppState.currentUser = JSON.parse(savedUser);
+                AppState.currentRole = AppState.currentUser.role;
+                showMainApp();
+            }
+            injectMyTestsNav();
+        }
+
+        function selectRole(role, element) {
+            document.querySelectorAll('.role-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+            AppState.currentRole = role;
+        }
+
+        function selectRegRole(role, element) {
+            document.querySelectorAll('#registerForm .role-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function validatePassword(password) {
+            return password.length >= 8 && /\d/.test(password);
+        }
+
+        function validateGitHubUrl(url) {
+            return !url || /^https:\/\/(www\.)?github\.com\/[a-zA-Z0-9-]+\/?$/.test(url);
+        }
+
+        function validateLinkedInUrl(url) {
+            return !url || /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?$/.test(url);
+        }
+
+        function showError(elementId, show) {
+            const el = document.getElementById(elementId);
+            if (el) el.classList.toggle('show', show);
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            let valid = true;
+            if (!validateEmail(email)) { showError('loginEmailError', true); valid = false; } else showError('loginEmailError', false);
+            if (password.length < 6) { showError('loginPasswordError', true); valid = false; } else showError('loginPasswordError', false);
+            if (!valid) return;
+
+            const btn = e.target.querySelector('[type=submit]');
+            btn.disabled = true; btn.textContent = 'Signing in...';
+            const res = await apiCall('/api/auth/login/', 'POST', { email, password });
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+
+            if (res.ok) {
+                setTokens(res.data.tokens.access, res.data.tokens.refresh);
+                AppState.currentUser = res.data.user;
+                AppState.currentRole = res.data.user.role;
+                localStorage.setItem('career_user', JSON.stringify(res.data.user));
+                showToast('Login successful! Welcome back, ' + res.data.user.name + '.', 'success');
+                showMainApp();
+            } else {
+                const msg = res.data.errors ? Object.values(res.data.errors).flat().join(' ') : (res.data.message || 'Login failed.');
+                showToast(msg, 'error');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPass = document.getElementById('regConfirmPassword').value;
+            const role = document.querySelector('#registerForm .role-card.selected')?.dataset.role || 'candidate';
+            let valid = true;
+            if (!validateEmail(email)) { showError('regEmailError', true); valid = false; } else showError('regEmailError', false);
+            if (!validatePassword(password)) { showError('regPasswordError', true); valid = false; } else showError('regPasswordError', false);
+            if (password !== confirmPass) { showError('regConfirmError', true); valid = false; } else showError('regConfirmError', false);
+            if (!valid) return;
+
+            const btn = e.target.querySelector('[type=submit]');
+            btn.disabled = true; btn.textContent = 'Creating account...';
+            const res = await apiCall('/api/auth/register/', 'POST', { name, email, password, confirm_password: confirmPass, role });
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+
+            if (res.ok) {
+                setTokens(res.data.tokens.access, res.data.tokens.refresh);
+                AppState.currentUser = res.data.user;
+                AppState.currentRole = res.data.user.role;
+                localStorage.setItem('career_user', JSON.stringify(res.data.user));
+                showToast('Account created! Welcome, ' + res.data.user.name + '.', 'success');
+                showMainApp();
+            } else {
+                const msg = res.data.errors ? Object.values(res.data.errors).flat().join(' ') : (res.data.message || 'Registration failed.');
+                showToast(msg, 'error');
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        }
+
+        function logout() {
+            AppState.currentUser = null;
+            clearTokens();
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('authContainer').classList.remove('hidden');
+            showToast('Logged out successfully', 'success');
+        }
+
+        function showMainApp() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+
+            // Update UI with user info
+            document.getElementById('userName').textContent = AppState.currentUser.name;
+            document.getElementById('userRole').textContent = AppState.currentUser.role === 'hr' ? 'HR Recruiter' : 'Candidate';
+            document.getElementById('userAvatar').textContent = AppState.currentUser.avatar || AppState.currentUser.name.substring(0, 2).toUpperCase();
+            document.getElementById('profileName').textContent = AppState.currentUser.name;
+            document.getElementById('profileEmail').textContent = AppState.currentUser.email;
+            document.getElementById('editName').value = AppState.currentUser.name;
+            document.getElementById('editEmail').value = AppState.currentUser.email;
+
+            // Show appropriate navigation
+            if (AppState.currentUser.role === 'hr') {
+                document.getElementById('candidateNav').classList.add('hidden');
+                document.getElementById('hrNav').classList.remove('hidden');
+                navigateTo('hr-dashboard');
+                initHRCharts();
+            } else {
+                document.getElementById('candidateNav').classList.remove('hidden');
+                document.getElementById('hrNav').classList.add('hidden');
+                injectMyTestsNav(); // Inject 'My Tests' nav item for candidates
+                navigateTo('dashboard');
+                updateDashboardStats();
+            }
+        }
+
+        /* ============================================
+           NAVIGATION & ROUTING
+           ============================================ */
+        function navigateTo(page) {
+            // Hide all sections
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show target section
+            const targetSection = document.getElementById(page);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                AppState.currentPage = page;
+            }
+
+            // Update nav active state
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Update page title
+            const titles = {
+                'dashboard': '<i class="fas fa-home"></i><span>Dashboard</span>',
+                'analysis': '<i class="fas fa-microscope"></i><span>Profile Analysis</span>',
+                'history': '<i class="fas fa-history"></i><span>Analysis History</span>',
+                'profile': '<i class="fas fa-user-circle"></i><span>My Profile</span>',
+                'my-tests': '<i class="fas fa-tasks"></i><span>My Tests</span>',
+                'hr-dashboard': '<i class="fas fa-chart-line"></i><span>HR Dashboard</span>',
+                'candidates': '<i class="fas fa-users"></i><span>Candidate Management</span>',
+                'mock-tests': '<i class="fas fa-clipboard-list"></i><span>Mock Tests</span>',
+                'analytics': '<i class="fas fa-chart-pie"></i><span>Analytics</span>'
+            };
+
+            document.getElementById('pageTitle').innerHTML = titles[page] || titles['dashboard'];
+
+            // Load section-specific data
+            if (page === 'history') loadHistory();
+            if (page === 'candidates') loadCandidates();
+            if (page === 'mock-tests') loadTests();
+            if (page === 'my-tests') loadMyTests();
+            if (page === 'analytics') loadRecommendations();
+
+            // Close sidebar on mobile
+            if (window.innerWidth <= 1024) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        /* ============================================
+           ANALYSIS FUNCTIONALITY
+           ============================================ */
+        function handleFileSelect(input, type) {
+            const file = input.files[0];
+            if (file) {
+                const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                if (!validTypes.includes(file.type)) {
+                    showToast('Please upload a PDF or Word document', 'error');
+                    input.value = '';
+                    return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast('File size must be less than 10MB', 'error');
+                    input.value = '';
+                    return;
+                }
+
+                document.getElementById('resumeFileName').textContent = file.name;
+                showToast(`File "${file.name}" uploaded successfully`, 'success');
+            }
+        }
+
+        // Drag and drop support
+        const uploadArea = document.getElementById('resumeUpload');
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length) {
+                    document.getElementById('resumeFile').files = files;
+                    handleFileSelect(document.getElementById('resumeFile'), 'resume');
+                }
+            });
+        }
+
+        async function startAnalysis(e) {
+            e.preventDefault();
+            const githubUrl = document.getElementById('githubUrl').value;
+            const linkedinUrl = document.getElementById('linkedinUrl').value;
+            const resumeFile = document.getElementById('resumeFile').files[0];
+            let valid = true;
+            if (githubUrl && !validateGitHubUrl(githubUrl)) { showError('githubError', true); valid = false; } else showError('githubError', false);
+            if (linkedinUrl && !validateLinkedInUrl(linkedinUrl)) { showError('linkedinError', true); valid = false; } else showError('linkedinError', false);
+            if (!valid) return;
+
+            const scanner = document.getElementById('scannerOverlay');
+            const scannerText = document.getElementById('scannerText');
+            scanner.classList.add('active');
+            const steps = [
+                'Parsing resume content...', 'Querying GitHub API...', 'Scraping LinkedIn profile...',
+                'Detecting skills and technologies...', 'Running Gemini AI analysis...', 'Generating recommendations...'
+            ];
+            let stepIdx = 0;
+            const stepInterval = setInterval(() => {
+                if (stepIdx < steps.length) { scannerText.textContent = steps[stepIdx++]; }
+            }, 1500);
+
+            const fd = new FormData();
+            if (resumeFile) fd.append('resume', resumeFile);
+            if (githubUrl) fd.append('github_url', githubUrl);
+            if (linkedinUrl) fd.append('linkedin_url', linkedinUrl);
+
+            const headers = {};
+            const token = getToken();
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            let res;
+            try {
+                const resp = await fetch(`${API_BASE}/api/analysis/analyze/`, { method: 'POST', headers, body: fd });
+                res = { ok: resp.ok, data: await resp.json() };
+            } catch (err) {
+                res = { ok: false, data: { message: 'Server error. Is Django running?' } };
+            }
+
+            clearInterval(stepInterval);
+            scanner.classList.remove('active');
+
+            if (res.ok) {
+                const results = mapApiAnalysis(res.data.analysis);
+                AppState.analysisHistory.unshift(results);
+                displayResults(results);
+                updateDashboardStats();
+                showToast('AI Analysis complete!', 'success');
+            } else {
+                showToast(res.data.message || 'Analysis failed.', 'error');
+            }
+        }
+
+        function mapApiAnalysis(a) {
+            return {
+                id: a.id,
+                date: a.created_at ? new Date(a.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+                resumeScore: a.resume_score || 0,
+                githubScore: a.github_score || 0,
+                linkedinScore: a.linkedin_score || 0,
+                overallScore: a.overall_score || 0,
+                jobReadiness: a.job_readiness_percentage || 0,
+                detectedSkills: a.detected_skills || [],
+                missingSkills: a.missing_skills || [],
+                suggestions: (a.suggestions || []),
+                courses: (a.recommended_courses || []).map(c => ({ name: c.name, provider: c.provider, reason: c.reason })),
+                roadmap: a.career_roadmap || [],
+                suitableRoles: a.suitable_job_roles || [],
+                readinessLevel: a.readiness_level || 'Not Analyzed',
+            };
+        }
+
+        function displayResults(results) {
+            document.getElementById('resultsContainer').classList.add('show');
+            animateValue('overallScore', 0, results.overallScore, 1500);
+            animateValue('resumeScore', 0, results.resumeScore, 1000);
+            animateValue('githubScore', 0, results.githubScore, 1200);
+            animateValue('linkedinScore', 0, results.linkedinScore, 1400);
+            setTimeout(() => {
+                document.getElementById('overallScoreCircle').setAttribute('stroke-dasharray', `${results.overallScore}, 100`);
+                document.getElementById('resumeScoreCircle').setAttribute('stroke-dasharray', `${results.resumeScore}, 100`);
+                document.getElementById('githubScoreCircle').setAttribute('stroke-dasharray', `${results.githubScore}, 100`);
+                document.getElementById('linkedinScoreCircle').setAttribute('stroke-dasharray', `${results.linkedinScore}, 100`);
+            }, 100);
+
+            // Build roadmap HTML
+            const roadmapHTML = (results.roadmap || []).map(r => `
+                <div class="suggestion-item" style="border-left-color:var(--neon-purple);">
+                    <i class="fas fa-map-marker-alt" style="color:var(--neon-purple);"></i>
+                    <div>
+                        <div style="font-weight:700;margin-bottom:4px;">Step ${r.step}: ${r.title} <span style="font-size:11px;color:var(--text-secondary);">(${r.duration || ''})</span></div>
+                        <div style="font-size:13px;color:var(--text-secondary);">${r.description}</div>
+                    </div>
+                </div>`).join('');
+
+            const rolesHTML = (results.suitableRoles || []).map(role =>
+                `<span class="skill-tag" style="background:rgba(184,41,221,0.15);border-color:rgba(184,41,221,0.3);color:var(--neon-purple);"><i class="fas fa-briefcase"></i> ${role}</span>`
+            ).join('');
+
+            const detailsHTML = `
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-check-circle"></i><h3>Detected Skills (${results.detectedSkills.length})</h3></div>
+                    <div>${results.detectedSkills.map(s => `<span class="skill-tag"><i class="fas fa-check"></i> ${s}</span>`).join('')}</div>
+                </div>
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-exclamation-triangle"></i><h3>Skills to Develop (${results.missingSkills.length})</h3></div>
+                    <div>${results.missingSkills.map(s => `<span class="skill-tag missing"><i class="fas fa-plus"></i> ${s}</span>`).join('')}</div>
+                </div>
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-lightbulb"></i><h3>Improvement Suggestions</h3></div>
+                    <div>${results.suggestions.map(s => `<div class="suggestion-item"><i class="fas fa-arrow-right"></i><div>${s}</div></div>`).join('')}</div>
+                </div>
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-graduation-cap"></i><h3>Recommended Courses</h3></div>
+                    <div>${results.courses.map(c => `
+                        <div class="suggestion-item">
+                            <i class="fas fa-book"></i>
+                            <div>
+                                <div style="font-weight:600;">${c.name}</div>
+                                <div style="font-size:12px;color:var(--text-secondary);">${c.provider}</div>
+                                ${c.reason ? `<div style="font-size:12px;color:var(--neon-blue);margin-top:3px;">${c.reason}</div>` : ''}
+                            </div>
+                        </div>`).join('')}
+                    </div>
+                </div>
+                ${rolesHTML ? `<div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-briefcase"></i><h3>Suitable Job Roles</h3></div>
+                    <div>${rolesHTML}</div>
+                </div>` : ''}
+                ${roadmapHTML ? `<div class="glass-card detail-card" style="grid-column:1/-1;">
+                    <div class="detail-header"><i class="fas fa-road"></i><h3>Career Roadmap</h3></div>
+                    <div>${roadmapHTML}</div>
+                </div>` : ''}
+            `;
+            document.getElementById('analysisResults').innerHTML = detailsHTML;
+            document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function animateValue(id, start, end, duration) {
+            const range = end - start;
+            const minTimer = 50;
+            let stepTime = Math.abs(Math.floor(duration / range));
+            stepTime = Math.max(stepTime, minTimer);
+
+            let startTime = new Date().getTime();
+            let endTime = startTime + duration;
+            let timer;
+
+            function run() {
+                let now = new Date().getTime();
+                let remaining = Math.max((endTime - now) / duration, 0);
+                let value = Math.round(end - (remaining * range));
+                obj.innerHTML = value + '%';
+                if (value == end) {
+                    clearInterval(timer);
+                }
+            }
+
+            timer = setInterval(run, stepTime);
+            run();
+        }
+
+        function resetForm() {
+            document.getElementById('resumeFile').value = '';
+            document.getElementById('resumeFileName').textContent = '';
+            document.getElementById('githubUrl').value = '';
+            document.getElementById('linkedinUrl').value = '';
+            document.getElementById('resultsContainer').classList.remove('show');
+        }
+
+        function reanalyze() {
+            document.getElementById('resultsContainer').classList.remove('show');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('resultsContainer');
+
+            const opt = {
+                margin: 10,
+                filename: `careerAI_Analysis_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, backgroundColor: '#0a0a0f' },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            showToast('Generating PDF...', 'success');
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                showToast('PDF downloaded successfully!', 'success');
+            }).catch(err => {
+                showToast('Error generating PDF. Please try again.', 'error');
+                console.error(err);
+            });
+        }
+
+        /* ============================================
+           ANALYTICS PAGE
+           ============================================ */
+        async function loadRecommendations() {
+            // Load analysis history summary for analytics tab
+            if (AppState.analysisHistory.length === 0) {
+                const res = await apiCall('/api/analysis/history/');
+                if (res.ok) {
+                    AppState.analysisHistory = (res.data.history || []).map(mapApiAnalysis);
+                }
+            }
+            const container = document.getElementById('recommendationsContainer');
+            if (!container) return;
+            if (AppState.analysisHistory.length === 0) {
+                container.innerHTML = '<div class="glass-card" style="padding:40px;text-align:center;"><p style="color:var(--text-secondary);">Run a profile analysis first to see recommendations here.</p></div>';
+                return;
+            }
+            const latest = AppState.analysisHistory[0];
+            container.innerHTML = `
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-graduation-cap"></i><h3>Recommended Courses</h3></div>
+                    <div>${(latest.courses || []).map(c => `
+                        <div class="suggestion-item">
+                            <i class="fas fa-book"></i>
+                            <div><div style="font-weight:600;">${c.name}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">${c.provider}</div>
+                            ${c.reason ? `<div style="font-size:12px;color:var(--neon-blue);">${c.reason}</div>` : ''}</div>
+                        </div>`).join('') || '<p style="color:var(--text-secondary);">No courses recommended yet.</p>'}
+                    </div>
+                </div>
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-road"></i><h3>Career Roadmap</h3></div>
+                    <div>${(latest.roadmap || []).map(r => `
+                        <div class="suggestion-item" style="border-left-color:var(--neon-purple);">
+                            <i class="fas fa-map-marker-alt" style="color:var(--neon-purple);"></i>
+                            <div><div style="font-weight:700;">Step ${r.step}: ${r.title} <span style="font-size:11px;color:var(--text-secondary);">(${r.duration || ''})</span></div>
+                            <div style="font-size:13px;color:var(--text-secondary);">${r.description}</div></div>
+                        </div>`).join('') || '<p style="color:var(--text-secondary);">No roadmap available yet.</p>'}
+                    </div>
+                </div>`;
+        }
+
+        /* ============================================
+           HISTORY MANAGEMENT
+           ============================================ */
+        function saveAnalysis(results) {
+            AppState.analysisHistory.unshift(results);
+            updateDashboardStats();
+        }
+
+        async function loadHistory() {
+            const container = document.getElementById('fullHistory');
+            container.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner" style="margin:auto;"></div></div>';
+            const res = await apiCall('/api/analysis/history/');
+            if (!res.ok) {
+                container.innerHTML = '<div class="glass-card" style="padding:30px;text-align:center;"><p style="color:#ff4757;">Error loading history. Is the server running?</p></div>';
+                return;
+            }
+            const history = (res.data.history || []).map(mapApiAnalysis);
+            AppState.analysisHistory = history;
+            updateDashboardStats();
+            if (history.length === 0) {
+                container.innerHTML = `<div class="glass-card" style="padding:40px;text-align:center;"><i class="fas fa-inbox" style="font-size:48px;color:var(--text-secondary);margin-bottom:15px;"></i><p>No analysis history yet. Start your first analysis!</p></div>`;
+                return;
+            }
+            container.innerHTML = history.map(item => `
+                <div class="glass-card history-item" onclick="viewHistoryItem(${item.id})">
+                    <div class="history-info">
+                        <h4>Analysis from ${item.date}</h4>
+                        <span>${item.detectedSkills.length} skills detected • ${item.readinessLevel}</span>
+                    </div>
+                    <div class="history-score">
+                        <div class="score">${item.overallScore}%</div>
+                        <div style="font-size:12px;color:var(--text-secondary);">Job Readiness</div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function viewHistoryItem(id) {
+            const item = AppState.analysisHistory.find(h => h.id === id);
+            if (item) {
+                displayResults(item);
+                navigateTo('analysis');
+            }
+        }
+
+        function updateDashboardStats() {
+            document.getElementById('totalAnalyses').textContent = AppState.analysisHistory.length;
+
+            if (AppState.analysisHistory.length > 0) {
+                const avg = Math.round(AppState.analysisHistory.reduce((a, b) => a + b.overallScore, 0) / AppState.analysisHistory.length);
+                document.getElementById('avgScore').textContent = avg + '%';
+
+                const totalSkills = AppState.analysisHistory[0].detectedSkills.length;
+                document.getElementById('skillsCount').textContent = totalSkills;
+
+                document.getElementById('readinessStatus').textContent = AppState.analysisHistory[0].readinessLevel;
+            }
+
+            // Update recent activity
+            const recentContainer = document.getElementById('recentActivity');
+            const recent = AppState.analysisHistory.slice(0, 3);
+
+            if (recent.length === 0) {
+                recentContainer.innerHTML = '<p style="color: var(--text-secondary);">No recent activity</p>';
+            } else {
+                recentContainer.innerHTML = recent.map(item => `
+                    <div class="glass-card history-item" style="padding: 20px;">
+                        <div class="history-info">
+                            <h4 style="font-size: 16px;">Profile Analysis</h4>
+                            <span style="font-size: 12px;">${item.date}</span>
+                        </div>
+                        <div class="history-score">
+                            <div class="score" style="font-size: 24px;">${item.overallScore}%</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        /* ============================================
+           PROFILE MANAGEMENT
+           ============================================ */
+        async function updateProfile(e) {
+            e.preventDefault();
+            const name = document.getElementById('editName').value;
+            const phone = document.getElementById('editPhone').value;
+            const location = document.getElementById('editLocation').value;
+            const bio = document.getElementById('editBio').value;
+            const res = await apiCall('/api/auth/profile/', 'PUT', { name, phone, location, bio });
+            if (res.ok) {
+                AppState.currentUser = res.data.user;
+                localStorage.setItem('career_user', JSON.stringify(res.data.user));
+                document.getElementById('userName').textContent = AppState.currentUser.name;
+                document.getElementById('profileName').textContent = AppState.currentUser.name;
+                document.getElementById('userAvatar').textContent = AppState.currentUser.avatar || AppState.currentUser.name.substring(0, 2).toUpperCase();
+                showToast('Profile updated successfully!', 'success');
+            } else {
+                showToast('Failed to update profile.', 'error');
+            }
+        }
+
+        async function changePassword() {
+            const old_password = prompt('Current password:');
+            if (!old_password) return;
+            const new_password = prompt('New password (min 8 chars):');
+            if (!new_password || new_password.length < 8) { showToast('Password too short.', 'error'); return; }
+            const res = await apiCall('/api/auth/profile/change-password/', 'POST', { old_password, new_password });
+            showToast(res.data.message || (res.ok ? 'Password changed!' : 'Failed.'), res.ok ? 'success' : 'error');
+        }
+
+        /* ============================================
+           HR DASHBOARD FUNCTIONALITY
+           ============================================ */
+        function loadMockData() { }
+
+        async function initHRCharts() {
+            // Load real stats from API
+            const statsRes = await apiCall('/api/hr/stats/');
+            if (statsRes.ok) {
+                const s = statsRes.data;
+                document.getElementById('hrTotalCandidates').textContent = s.total_candidates;
+                document.getElementById('hrAvgScore').textContent = s.avg_readiness + '%';
+                document.getElementById('hrTestsConducted').textContent = s.tests_conducted;
+                document.getElementById('hrHiringRate').textContent = s.tests_created > 0 ? Math.round((s.tests_conducted / (s.tests_created * 10)) * 100) + '%' : '0%';
+
+                const dist = s.readiness_distribution || {};
+                const readinessCtx = document.getElementById('readinessChart');
+                if (readinessCtx && !AppState.charts.readiness) {
+                    AppState.charts.readiness = new Chart(readinessCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Excellent (80+)', 'Good (60-79)', 'Average (40-59)', 'Below 40%'],
+                            datasets: [{ data: [dist.excellent || 0, dist.good || 0, dist.average || 0, dist.below || 0], backgroundColor: ['#00ff88', '#00f3ff', '#ffc107', '#ff4757'], borderWidth: 0 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } }
+                    });
+                }
+
+                const topSkills = (s.top_skills || []).slice(0, 6);
+                const skillsCtx = document.getElementById('skillsChart');
+                if (skillsCtx && !AppState.charts.skills) {
+                    AppState.charts.skills = new Chart(skillsCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: topSkills.map(sk => sk.skill),
+                            datasets: [{ label: 'Candidates with Skill', data: topSkills.map(sk => sk.count), backgroundColor: '#00f3ff', borderRadius: 8 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#a0a0b0' }, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { ticks: { color: '#a0a0b0' }, grid: { display: false } } } }
+                    });
+                }
+            } else {
+                // fallback static chart
+                document.getElementById('hrTotalCandidates').textContent = '0';
+                document.getElementById('hrAvgScore').textContent = '0%';
+                document.getElementById('hrTestsConducted').textContent = '0';
+                document.getElementById('hrHiringRate').textContent = '0%';
+            }
+        }
+
+        async function loadCandidates() {
+            const tbody = document.getElementById('candidatesTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;"><div class="loading-spinner" style="margin:auto;"></div></td></tr>';
+            const res = await apiCall('/api/hr/candidates/');
+            if (!res.ok) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#ff4757;padding:20px;">Error loading candidates.</td></tr>';
+                return;
+            }
+            AppState.candidates = res.data.candidates || [];
+            if (AppState.candidates.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-secondary);">No candidates have analysed their profiles yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = AppState.candidates.map(c => `
+                <tr>
+                    <td><div class="candidate-info"><div class="candidate-avatar">${c.avatar || c.name.split(' ').map(n => n[0]).join('')}</div><div><div style="font-weight:600;">${c.name}</div><div style="font-size:12px;color:var(--text-secondary);">${c.email}</div></div></div></td>
+                    <td>${(c.suitable_job_roles || []).slice(0, 1).join('') || 'N/A'}</td>
+                    <td>${c.resume_score != null ? c.resume_score + '%' : 'N/A'}</td>
+                    <td>${c.github_score != null ? c.github_score + '%' : 'N/A'}</td>
+                    <td>${c.linkedin_score != null ? c.linkedin_score + '%' : 'N/A'}</td>
+                    <td><strong style="color:var(--neon-green);">${c.overall_score != null ? c.overall_score + '%' : 'Not analysed'}</strong></td>
+                    <td><span class="status-badge ${c.overall_score >= 80 ? 'excellent' : c.overall_score >= 60 ? 'good' : 'average'}">${c.readiness_level}</span></td>
+                    <td><button class="glass-btn secondary" style="padding:8px 16px;font-size:12px;" onclick="viewCandidate(${c.id})"><i class="fas fa-eye"></i> View</button></td>
+                </tr>`).join('');
+        }
+
+        function filterCandidates() {
+            const searchTerm = (document.getElementById('candidateSearch')?.value || '').toLowerCase();
+            const scoreFilter = document.getElementById('scoreFilter')?.value || '';
+            const tbody = document.getElementById('candidatesTableBody');
+            const filtered = AppState.candidates.filter(c => {
+                const matchSearch = !searchTerm || c.name.toLowerCase().includes(searchTerm) || c.email.toLowerCase().includes(searchTerm);
+                const score = c.overall_score || 0;
+                const matchScore = !scoreFilter
+                    || (scoreFilter === '80' && score >= 80)
+                    || (scoreFilter === '60' && score >= 60 && score < 80)
+                    || (scoreFilter === '0' && score < 60);
+                return matchSearch && matchScore;
+            });
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-secondary);">No candidates match your search.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filtered.map(c => `
+                <tr>
+                    <td><div class="candidate-info"><div class="candidate-avatar">${c.avatar || c.name.split(' ').map(n => n[0]).join('')}</div><div><div style="font-weight:600;">${c.name}</div><div style="font-size:12px;color:var(--text-secondary);">${c.email}</div></div></div></td>
+                    <td>${(c.suitable_job_roles || []).slice(0, 1).join('') || 'N/A'}</td>
+                    <td>${c.resume_score != null ? c.resume_score + '%' : 'N/A'}</td>
+                    <td>${c.github_score != null ? c.github_score + '%' : 'N/A'}</td>
+                    <td>${c.linkedin_score != null ? c.linkedin_score + '%' : 'N/A'}</td>
+                    <td><strong style="color:var(--neon-green);">${c.overall_score != null ? c.overall_score + '%' : 'Not analysed'}</strong></td>
+                    <td><span class="status-badge ${(c.overall_score || 0) >= 80 ? 'excellent' : (c.overall_score || 0) >= 60 ? 'good' : 'average'}">${c.readiness_level || 'N/A'}</span></td>
+                    <td><button class="glass-btn secondary" style="padding:8px 16px;font-size:12px;" onclick="viewCandidate(${c.id})"><i class="fas fa-eye"></i> View</button></td>
+                </tr>`).join('');
+        }
+
+        function refreshCandidates() {
+            loadCandidates();
+            showToast('Candidate list refreshed', 'success');
+        }
+
+        function viewCandidate(id) {
+            const candidate = AppState.candidates.find(c => c.id === id);
+            if (!candidate) return;
+
+            const modal = document.getElementById('candidateModal');
+            const content = document.getElementById('candidateModalContent');
+            const initials = candidate.name.split(' ').map(n => n[0]).join('');
+            const skillsHTML = (candidate.detected_skills || []).map(s => `<span class="skill-tag">${s}</span>`).join('') || '<span style="color:var(--text-secondary);">No analysis yet</span>';
+
+            content.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div class="candidate-avatar" style="width: 80px; height: 80px; font-size: 28px; margin: 0 auto 15px;">${initials}</div>
+                    <h2>${candidate.name}</h2>
+                    <p style="color: var(--text-secondary);">${(candidate.suitable_job_roles || []).length > 0 ? candidate.suitable_job_roles[0] : 'Not yet analysed'}</p>
+                    <p style="color: var(--text-secondary); font-size:13px;">${candidate.email}</p>
+                </div>
+
+                <div class="score-overview" style="margin-bottom: 30px;">
+                    <div class="glass-card score-circle" style="padding: 20px;">
+                        <div class="stat-value" style="font-size: 32px;">${candidate.overall_score != null ? candidate.overall_score + '%' : 'N/A'}</div>
+                        <div class="stat-label">Overall</div>
+                    </div>
+                    <div class="glass-card score-circle" style="padding: 20px;">
+                        <div class="stat-value" style="font-size: 32px;">${candidate.resume_score != null ? candidate.resume_score + '%' : 'N/A'}</div>
+                        <div class="stat-label">Resume</div>
+                    </div>
+                    <div class="glass-card score-circle" style="padding: 20px;">
+                        <div class="stat-value" style="font-size: 32px;">${candidate.github_score != null ? candidate.github_score + '%' : 'N/A'}</div>
+                        <div class="stat-label">GitHub</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding:20px;margin-bottom:20px;">
+                    <h4 style="margin-bottom:12px;"><i class="fas fa-check-circle" style="color:var(--neon-green);margin-right:8px;"></i>Detected Skills</h4>
+                    <div>${skillsHTML}</div>
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button class="glass-btn" onclick="scheduleInterview(${candidate.id})">
+                        <i class="fas fa-calendar"></i> Schedule Interview
+                    </button>
+                    <button class="glass-btn secondary" onclick="sendTest(${candidate.id})">
+                        <i class="fas fa-paper-plane"></i> Send Test
+                    </button>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        function closeCandidateModal() {
+            document.getElementById('candidateModal').classList.remove('active');
+        }
+
+        function scheduleInterview(id) {
+            showToast('Interview scheduling modal would open here', 'success');
+        }
+
+        function sendTest(id) {
+            showToast('Test sent to candidate', 'success');
+        }
+
+        /* ============================================
+           MOCK TEST SYSTEM
+           ============================================ */
+        function openTestBuilder() {
+            document.getElementById('testBuilder').style.display = 'block';
+            document.getElementById('questionsContainer').innerHTML = '';
+            addQuestion();
+        }
+
+        function closeTestBuilder() {
+            document.getElementById('testBuilder').style.display = 'none';
+        }
+
+        function addQuestion() {
+            const container = document.getElementById('questionsContainer');
+            const qNum = container.children.length + 1;
+
+            const questionHTML = `
+                <div class="question-card">
+                    <div class="form-group">
+                        <label class="form-label">Question ${qNum}</label>
+                        <input type="text" class="glass-input" placeholder="Enter question text...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Options</label>
+                        <div class="option-input">
+                            <input type="radio" name="correct${qNum}" value="0">
+                            <input type="text" class="glass-input" placeholder="Option A">
+                        </div>
+                        <div class="option-input">
+                            <input type="radio" name="correct${qNum}" value="1">
+                            <input type="text" class="glass-input" placeholder="Option B">
+                        </div>
+                        <div class="option-input">
+                            <input type="radio" name="correct${qNum}" value="2">
+                            <input type="text" class="glass-input" placeholder="Option C">
+                        </div>
+                        <div class="option-input">
+                            <input type="radio" name="correct${qNum}" value="3">
+                            <input type="text" class="glass-input" placeholder="Option D">
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', questionHTML);
+        }
+
+        async function saveTest() {
+            const title = document.getElementById('testTitle').value;
+            if (!title) { showToast('Please enter a test title', 'error'); return; }
+            const questionCards = document.getElementById('questionsContainer').querySelectorAll('.question-card');
+            const questions = [];
+            for (let i = 0; i < questionCards.length; i++) {
+                const card = questionCards[i];
+                const qText = card.querySelector('input[type=text]').value.trim();
+                const opts = Array.from(card.querySelectorAll('.option-input input[type=text]')).map(o => o.value.trim());
+                const correctRadio = card.querySelector(`input[name=correct${i + 1}]:checked`);
+                const correct = correctRadio ? parseInt(correctRadio.value) : 0;
+                if (!qText) { showToast(`Question ${i + 1} text is required.`, 'error'); return; }
+                questions.push({ question: qText, options: opts, correct, explanation: '' });
+            }
+            if (questions.length === 0) { showToast('Add at least one question.', 'error'); return; }
+            const res = await apiCall('/api/tests/', 'POST', { title, questions, time_limit: 30 });
+            if (res.ok) {
+                closeTestBuilder();
+                loadTests();
+                showToast('Test created and published for candidates!', 'success');
+            } else {
+                const msg = res.data.errors ? JSON.stringify(res.data.errors) : (res.data.message || 'Save failed.');
+                showToast(msg, 'error');
+            }
+        }
+
+        async function loadTests() {
+            const container = document.getElementById('testsList');
+            const res = await apiCall('/api/tests/');
+            if (!res.ok) { container.innerHTML = '<p style="color:#ff4757;">Error loading tests.</p>'; return; }
+            AppState.mockTests = res.data.tests || [];
+            if (AppState.mockTests.length === 0) {
+                container.innerHTML = '<div class="glass-card detail-card"><p style="color:var(--text-secondary);">No tests created yet.</p></div>';
+                return;
+            }
+            container.innerHTML = AppState.mockTests.map(test => `
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-clipboard-list"></i><h3>${test.title}</h3></div>
+                    <div style="display:flex;gap:20px;margin-bottom:20px;">
+                        <div><i class="fas fa-question-circle" style="color:var(--neon-blue);"></i> ${test.question_count} Questions</div>
+                        <div><i class="fas fa-clock" style="color:var(--neon-blue);"></i> ${test.time_limit} Minutes</div>
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <button class="glass-btn danger" style="padding:10px 20px;font-size:12px;" onclick="deleteTest(${test.id})"><i class="fas fa-trash"></i> Delete</button>
+                        <button class="glass-btn secondary" style="padding:10px 20px;font-size:12px;" onclick="viewTestResults(${test.id})"><i class="fas fa-chart-bar"></i> Results</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        function editTest(id) { showToast('Edit test functionality', 'success'); }
+        function previewTest(id) { showToast('Preview test functionality', 'success'); }
+        async function deleteTest(id) {
+            const res = await apiCall(`/api/tests/${id}/`, 'DELETE');
+            if (res.ok) { loadTests(); showToast('Test deleted.', 'success'); }
+            else showToast('Delete failed.', 'error');
+        }
+
+        async function viewTestResults(id) {
+            const res = await apiCall(`/api/tests/${id}/results/`);
+            if (res.ok) {
+                const data = res.data;
+                let html = `<h3 style="margin-bottom:20px;">${data.test_title} – ${data.total_attempts} Attempts</h3>`;
+                if (data.results.length === 0) { html += '<p style="color:var(--text-secondary);">No attempts yet.</p>'; }
+                else { html += data.results.map(r => `<div class="suggestion-item"><i class="fas fa-user"></i><div><div style="font-weight:600;">${r.candidate_name}</div><div style="font-size:13px;color:var(--text-secondary);">${new Date(r.submitted_at).toLocaleString()} &bull; ${r.percentage}%</div></div></div>`).join(''); }
+                document.getElementById('candidateModalContent').innerHTML = html;
+                document.getElementById('candidateModal').classList.add('active');
+            }
+        }
+
+        /* ============================================
+           ANALYTICS & RECOMMENDATIONS
+           ============================================ */
+        function loadRecommendations() {
+            const recs = [
+                { title: 'High Priority: Frontend Developers', desc: 'Demand for React developers has increased 40% this quarter. Consider fast-tracking qualified candidates.', icon: 'fa-user-plus', color: '#00ff88' },
+                { title: 'Skill Gap Alert: DevOps', desc: 'Only 15% of candidates have Kubernetes experience. Consider creating targeted training programs.', icon: 'fa-exclamation-triangle', color: '#ffc107' },
+                { title: 'Interview Optimization', desc: 'Candidates with 80%+ scores have 90% onsite success rate. Prioritize these for faster hiring.', icon: 'fa-chart-line', color: '#00f3ff' }
+            ];
+
+            document.getElementById('recommendationsList').innerHTML = recs.map(r => `
+                <div class="suggestion-item" style="border-left-color: ${r.color};">
+                    <i class="fas ${r.icon}" style="color: ${r.color};"></i>
+                    <div>
+                        <div style="font-weight: 700; margin-bottom: 5px;">${r.title}</div>
+                        <div style="font-size: 14px; color: var(--text-secondary);">${r.desc}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Initialize additional charts if needed
+            if (!AppState.charts.funnel) {
+                const funnelCtx = document.getElementById('funnelChart');
+                if (funnelCtx) {
+                    AppState.charts.funnel = new Chart(funnelCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Applicants', 'Screened', 'Interviewed', 'Offers', 'Hired'],
+                            datasets: [{
+                                label: 'Candidates',
+                                data: [250, 120, 45, 20, 12],
+                                backgroundColor: ['#00f3ff', '#00e5ff', '#00d4ff', '#00c3ff', '#00b2ff'],
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { ticks: { color: '#a0a0b0' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                                y: { ticks: { color: '#fff' }, grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        /* ============================================
+           MY TESTS – CANDIDATE SECTION
+           ============================================ */
+        function injectMyTestsNav() {
+            const nav = document.getElementById('candidateNav');
+            if (!nav || nav.querySelector('[data-page="my-tests"]')) return;
+            const li = document.createElement('li');
+            li.className = 'nav-item';
+            li.innerHTML = `<a class="nav-link" data-page="my-tests" onclick="navigateTo('my-tests')">
+                <i class="fas fa-tasks"></i><span>My Tests</span></a>`;
+            nav.appendChild(li);
+            // Add the section to main content if not present
+            if (!document.getElementById('my-tests')) {
+                const main = document.querySelector('.main-content');
+                const sec = document.createElement('section');
+                sec.className = 'page-section';
+                sec.id = 'my-tests';
+                sec.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;">
+                        <h2 style="display:flex;align-items:center;gap:12px;"><i class="fas fa-tasks" style="color:var(--neon-blue);"></i>My Tests</h2>
+                    </div>
+                    <div class="analysis-details" id="myTestsList">
+                        <div class="glass-card" style="padding:40px;text-align:center;">
+                            <i class="fas fa-spinner fa-spin" style="font-size:48px;color:var(--neon-blue);"></i>
+                            <p style="margin-top:15px;color:var(--text-secondary);">Loading available tests...</p>
+                        </div>
+                    </div>`;
+                main.appendChild(sec);
+            }
+            // Inject test attempt modal if not present
+            if (!document.getElementById('testAttemptModal')) {
+                document.body.insertAdjacentHTML('beforeend', `
+                    <div class="modal-overlay" id="testAttemptModal">
+                        <div class="glass-card modal-content" style="max-width:750px;">
+                            <button class="modal-close" onclick="closeTestAttempt()"><i class="fas fa-times"></i></button>
+                            <div id="testAttemptContent"></div>
+                        </div>
+                    </div>`);
+            }
+        }
+
+        async function loadMyTests() {
+            const container = document.getElementById('myTestsList');
+            if (!container) return;
+            container.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner" style="margin:auto;"></div></div>';
+            const res = await apiCall('/api/tests/my-tests/');
+            if (!res.ok) { container.innerHTML = '<div class="glass-card" style="padding:30px;text-align:center;"><p style="color:#ff4757;">Error loading tests.</p></div>'; return; }
+            const tests = res.data.tests || [];
+            if (tests.length === 0) {
+                container.innerHTML = '<div class="glass-card" style="padding:40px;text-align:center;"><i class="fas fa-clipboard" style="font-size:48px;color:var(--text-secondary);"></i><p style="margin-top:15px;">No tests available yet. Check back soon!</p></div>';
+                return;
+            }
+            container.innerHTML = tests.map(t => `
+                <div class="glass-card detail-card">
+                    <div class="detail-header"><i class="fas fa-clipboard-list"></i><h3>${t.title}</h3></div>
+                    <div style="display:flex;gap:20px;margin-bottom:20px;">
+                        <div><i class="fas fa-question-circle" style="color:var(--neon-blue);"></i> ${t.question_count} Questions</div>
+                        <div><i class="fas fa-clock" style="color:var(--neon-blue);"></i> ${t.time_limit} min</div>
+                    </div>
+                    ${t.attempted
+                    ? `<div style="padding:15px;background:rgba(0,255,136,0.1);border-radius:12px;border:1px solid rgba(0,255,136,0.3);">
+                            <i class="fas fa-check-circle" style="color:var(--neon-green);"></i>
+                            <strong>Completed</strong> – Score: ${t.attempt.percentage}%
+                           </div>`
+                    : `<button class="glass-btn" onclick="openTestAttempt(${t.id},'${t.title}',${t.time_limit})"><i class="fas fa-play"></i> Start Test</button>`
+                }
+                </div>`).join('');
+        }
+
+        let testTimer = null;
+        let testStartTime = null;
+
+        async function openTestAttempt(testId, testTitle, timeLimit) {
+            const res = await apiCall(`/api/tests/${testId}/`);
+            if (!res.ok) { showToast('Could not load test.', 'error'); return; }
+            const test = res.data.test;
+            AppState.currentTestData = { id: testId, questions: test.questions, answers: new Array(test.questions.length).fill(-1) };
+            testStartTime = Date.now();
+
+            let qHTML = (test.questions || []).map((q, i) => `
+                <div style="margin-bottom:25px;padding:20px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid var(--border-glass);">
+                    <div style="font-weight:600;margin-bottom:12px;">${i + 1}. ${q.question}</div>
+                    ${(q.options || []).map((opt, oi) => `
+                        <label style="display:flex;align-items:center;gap:10px;margin:8px 0;cursor:pointer;">
+                            <input type="radio" name="q_${i}" value="${oi}" onchange="AppState.currentTestData.answers[${i}]=${oi}" style="accent-color:var(--neon-blue);">
+                            <span>${opt}</span>
+                        </label>`).join('')}
+                </div>`).join('');
+
+            const minutes = timeLimit || 30;
+            document.getElementById('testAttemptContent').innerHTML = `
+                <div style="padding:30px;">
+                    <h2 style="margin-bottom:5px;display:flex;align-items:center;gap:10px;">
+                        <i class="fas fa-clipboard-list" style="color:var(--neon-blue);"></i>${testTitle}
+                    </h2>
+                    <div style="color:var(--neon-blue);margin-bottom:25px;font-size:18px;" id="timerDisplay">⏱ ${minutes}:00</div>
+                    <div id="questionsArea">${qHTML}</div>
+                    <button class="glass-btn" style="margin-top:20px;width:100%;" onclick="submitTest(${testId})">
+                        <i class="fas fa-paper-plane"></i> Submit Test
+                    </button>
+                </div>`;
+            document.getElementById('testAttemptModal').classList.add('active');
+
+            // Start countdown
+            let remaining = minutes * 60;
+            testTimer = setInterval(() => {
+                remaining--;
+                const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+                const s = (remaining % 60).toString().padStart(2, '0');
+                const el = document.getElementById('timerDisplay');
+                if (el) el.textContent = `⏱ ${m}:${s}`;
+                if (remaining <= 0) { clearInterval(testTimer); submitTest(testId); }
+            }, 1000);
+        }
+
+        function closeTestAttempt() {
+            clearInterval(testTimer);
+            document.getElementById('testAttemptModal').classList.remove('active');
+        }
+
+        async function submitTest(testId) {
+            clearInterval(testTimer);
+            const answers = AppState.currentTestData.answers;
+            const timeTaken = Math.round((Date.now() - testStartTime) / 1000);
+            const res = await apiCall(`/api/tests/${testId}/attempt/`, 'POST', { answers, time_taken: timeTaken });
+            closeTestAttempt();
+            if (res.ok) {
+                showToast(`Test submitted! Score: ${res.data.percentage}% (${res.data.score}/${res.data.total})`, 'success');
+                loadMyTests();
+            } else {
+                showToast(res.data.message || 'Submission failed.', 'error');
+            }
+        }
+
+        /* ============================================
+           CHATBOT FUNCTIONALITY
+           ============================================ */
+        function toggleChatbot() {
+            const win = document.getElementById('chatbotWindow');
+            win.classList.toggle('open');
+        }
+
+        function handleChatKey(e) { if (e.key === 'Enter') sendMessage(); }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            addChatMessage(message, 'user');
+            input.value = '';
+            // Show typing indicator
+            const thinkingId = 'thinking-' + Date.now();
+            addChatMessage('<i class="fas fa-circle-notch fa-spin"></i> Thinking...', 'bot', thinkingId);
+            const res = await apiCall('/api/chatbot/message/', 'POST', { message });
+            const thinkingEl = document.getElementById(thinkingId);
+            if (thinkingEl) thinkingEl.remove();
+            const reply = res.ok ? res.data.response : 'Sorry, I could not connect to the AI. Is the server running?';
+            addChatMessage(reply, 'bot');
+        }
+
+        function addChatMessage(text, sender, id) {
+            const container = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            if (id) msgDiv.id = id;
+            msgDiv.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        /* ============================================
+           UTILITY FUNCTIONS
+           ============================================ */
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+            toast.innerHTML = `<i class="fas fa-${icon}" style="margin-right: 10px;"></i> ${message}`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize app on load
+        window.addEventListener('DOMContentLoaded', initApp);
+
+        // Close modal on outside click
+        document.getElementById('candidateModal').addEventListener('click', function (e) {
+            if (e.target === this) closeCandidateModal();
+        });
+    </script>
+</body>
+
+</html>
